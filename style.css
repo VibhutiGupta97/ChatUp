@@ -1,0 +1,30 @@
+/*<style type="text/css">*/
+.mlogo
+{
+    font-weight: 600;
+    display: inline-block;
+    margin: 20px;
+    padding: 5px 10px;
+    font-size:1.5em;
+    line-height: 1.5px;
+    letter-spacing: 2px;
+    color: white;
+}
+.header {
+    z-index: 300;
+    background-color: black;
+    color: white;
+
+}
+
+
+.chat{
+    margin-top: initial;
+    margin-left: 100px;
+    margin-right: 100px;
+    padding: 10px 20px;
+    position: absolute;
+}
+.bg h1{
+    color:white ;
+}

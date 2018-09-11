@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ChatUp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script
+            src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link  href="style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="notLoggedIn" >
+    <header class="header">
+        <a class="mlogo" onclick="goToHome()">ChatUp</a>
+    </header>
+
+</div>
+
+    <div id="controller" v-cloak>
+        <div class="login" v-show="! isLoggedIn">
+            <div class="header">
+                <h4>Login</h4>
+            </div>
+            <form class="login-form" @submit="login(event)">
+                <input type="text" placeholder="Type your name" v-model="userActive">
+                <button type="submit">Login</button>
+            </form>
+        </div>
+
+        <div class="wrapper" v-show="isLoggedIn">
+            <div class="header">
+                <h4>{{ headerTitle }}</h4>
+            </div>
+            <div class="user-lists">
+                <div class="user" v-for="user in users" @click="setUserTarget(user.username)" v-if="user.username != userActive" v-bind:class="{ 'active': userTarget == user.username }">
+                    <div class="user-img">
+                        <img class="profile-img" src="user.svg">
+                    </div>
+                    <div class="user-desc">
+                        <span class="user-name">{{ user.username }}</span><br>
+                        <span class="registered-date">Registered on {{ user.registered }}</span>
+                    </div>
+                    <div class="notification" v-if="user.notifications > 0">
+                        {{ user.notifications }}
+                    </div>
+                </div>
+
+                <div class="no-user-active" v-if="users.length <= 1">
+                    <h5>No active user</h5>
+                </div>
+                
+            </div>
+            <div class="message-container">
+                <div class="chat-content">
+                    <div class="chat-item" v-for="message in messages" 
+                    v-if="(message.from == userTarget && message.to == userActive) || (message.to == userTarget && message.from == userActive)">
+                        <div v-bind:class="message.from == userActive ? 'me' : 'her'">{{ message.message }}</div>
+                    </div>
+
+                    <img class="chat-img" src="/chat.svg" v-if="userTarget == ''">
+
+                    <form class="text-box" @submit="sendMessage(event)" v-show="userTarget != ''">
+                        <input type="text" v-model="messageText" placeholder="Write your message">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/vue.min.js"></script>
+    <script src="/moment.min.js"></script>
+    <script>
+        const socket = io();
+
+        var chatApp = new Vue({
+            el: '#controller',
+            data: {
+                headerTitle: "Simple chat app",
+                isLoggedIn: false,
+                userActive: "",
+                userTarget: "",
+                messageText: "",
+                users: [],
+                messages: [],
+            },
+            mounted() {
+                const _this = this;
+                
+                socket.on('add-user', (data) => {
+                    _this.users = data;
+                });
+
+                socket.on('receive-message', (data) => {
+                    _this.setMessages(data);
+                });
+
+                window.onbeforeunload = () => {
+                    return "Leave chat?";
+                }
+            },
+            methods: {
+                login(event) {
+                    event.preventDefault();
+
+                    this.isLoggedIn = true;
+                    socket.emit('login', {username: this.userActive, registered: moment().format('HH:mm'), notifications: 0});
+                },
+
+                setUserTarget(username) {
+                    this.userTarget = username;
+                    this.headerTitle = username;
+
+                    this.setNotification();
+                },
+
+                sendMessage(event) {
+                    event.preventDefault();
+
+                    socket.emit('send-message', { from: this.userActive, to: this.userTarget, message: this.messageText });
+                    this.messageText = "";
+                },
+
+                setMessages(data) {
+                    this.messages.push(data);
+                    this.setNotification(data);
+                },
+                
+                setNotification(data = {}) {
+                    for (var i = 0; i < this.users.length; i++) {
+                        if (data.from == this.users[i].username && this.userTarget != data.from && data.to == this.userActive)
+                            this.users[i].notifications++;
+
+                        if (this.users[i].username == this.userTarget)
+                            this.users[i].notifications = 0;
+                    }
+                    
+                }
+            }
+        });
+    </script>
+<script src="style.css"></script>
+</body>
+</html>
